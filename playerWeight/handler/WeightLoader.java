@@ -1,0 +1,125 @@
+package playerWeight.handler;
+
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
+import java.util.ArrayList;
+import java.util.List;
+
+import net.minecraft.item.Item;
+import net.minecraftforge.fluids.Fluid;
+import net.minecraftforge.fluids.FluidRegistry;
+import playerWeight.api.ItemEntry;
+import playerWeight.api.WeightRegistry;
+import playerWeight.misc.IteratorWrapper;
+import playerWeight.misc.XMLNode;
+
+public class WeightLoader
+{
+	int currentIndex = 0;
+	List<String> errors = new ArrayList<String>();
+	
+	public void loadItems(File file)
+	{
+		currentIndex = 0;
+		try
+		{
+			BufferedReader reader = new BufferedReader(new FileReader(file));
+			for(String s : new IteratorWrapper<String>(reader.lines().iterator()))
+			{
+				s = s.trim();
+				if(s.startsWith("//"))
+				{
+					currentIndex++;
+					continue;
+				}
+				if(s.isEmpty())
+				{
+					currentIndex++;
+					continue;
+				}
+				if(!s.startsWith("<") || s.endsWith(">"))
+				{
+					errors.add("Line ["+currentIndex+"] has missing <> to identify the Data");
+					currentIndex++;
+					continue;
+				}
+				try
+				{
+					processNode(new XMLNode(s));
+				}
+				catch(Exception e)
+				{
+					errors.add("Error at line: "+currentIndex+" "+e.getMessage());
+				}
+			}
+			reader.close();
+		}
+		catch(Exception e)
+		{
+			e.printStackTrace();
+		}
+		
+	}
+	
+	private void processNode(XMLNode node)
+	{
+		String type = node.get("type");
+		if(type.equalsIgnoreCase("item"))
+		{
+			Item item = Item.getByNameOrId(node.get("name"));
+			if(item == null)
+			{
+				errors.add("Line ["+currentIndex+"] has a Null Item");
+				return;
+			}
+			double weight = node.getAsDouble("weight");
+			if(node.hasEntry("meta"))
+			{
+				WeightRegistry.INSTANCE.registerStack(new ItemEntry(item, node.getAsInt("meta")), weight);
+			}
+			else if(node.hasEntry("metas"))
+			{
+				for(int id : node.getAsIntArray("metas"))
+				{
+					WeightRegistry.INSTANCE.registerStack(new ItemEntry(item, id), weight);
+				}
+			}
+			else
+			{
+				WeightRegistry.INSTANCE.registerItem(item, weight);
+			}
+		}
+		else if(type.equalsIgnoreCase("ore"))
+		{
+			WeightRegistry.INSTANCE.registerOre(node.get("node"), node.getAsDouble("weight"));
+		}
+		else if(type.equalsIgnoreCase("fluid"))
+		{
+			Fluid fluid = FluidRegistry.getFluid(node.get("name"));
+			if(fluid == null)
+			{
+				errors.add("Line ["+currentIndex+"] has a Null Fluid");
+				return;
+			}
+			WeightRegistry.INSTANCE.registerFluid(fluid, node.getAsDouble("weight"));
+		}
+		else if(type.equalsIgnoreCase("defaultWeight"))
+		{
+			WeightRegistry.INSTANCE.setDefaultWeight(node.getAsDouble("weight"));
+		}
+	}
+	
+	
+	public List<String> getErrors()
+	{
+		List<String> newList = new ArrayList<String>(errors);
+		errors.clear();
+		return newList;
+	}
+	
+	public boolean hasErrors()
+	{
+		return errors.size() > 0;
+	}
+}
