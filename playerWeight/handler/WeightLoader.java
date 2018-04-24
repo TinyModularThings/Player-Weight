@@ -38,9 +38,15 @@ public class WeightLoader
 					currentIndex++;
 					continue;
 				}
-				if(!s.startsWith("<") || s.endsWith(">"))
+				if(!s.startsWith("<") || !s.endsWith(">"))
 				{
 					errors.add("Line ["+currentIndex+"] has missing <> to identify the Data");
+					currentIndex++;
+					continue;
+				}
+				if(s.indexOf("<", 1) >= 0)
+				{
+					errors.add("Line ["+currentIndex+"] has Multiple entries in one line. Thats not allowed");
 					currentIndex++;
 					continue;
 				}
@@ -52,6 +58,7 @@ public class WeightLoader
 				{
 					errors.add("Error at line: "+currentIndex+" "+e.getMessage());
 				}
+				currentIndex++;
 			}
 			reader.close();
 		}
@@ -76,14 +83,26 @@ public class WeightLoader
 			double weight = node.getAsDouble("weight");
 			if(node.hasEntry("meta"))
 			{
-				WeightRegistry.INSTANCE.registerStack(new ItemEntry(item, node.getAsInt("meta")), weight);
+				int meta = node.getAsInt("meta");
+				if(meta < 0)
+				{
+					errors.add("Line ["+currentIndex+"] a Metadata of negative value. Not allowed");
+					return;
+				}
+				WeightRegistry.INSTANCE.registerStack(new ItemEntry(item, meta), weight);
 			}
 			else if(node.hasEntry("metas"))
 			{
 				for(int id : node.getAsIntArray("metas"))
 				{
+					if(id < 0)
+					{
+						errors.add("Line ["+currentIndex+"] a Metadata of negative value. Not allowed");
+						continue;
+					}
 					WeightRegistry.INSTANCE.registerStack(new ItemEntry(item, id), weight);
 				}
+				
 			}
 			else
 			{
@@ -92,7 +111,7 @@ public class WeightLoader
 		}
 		else if(type.equalsIgnoreCase("ore"))
 		{
-			WeightRegistry.INSTANCE.registerOre(node.get("node"), node.getAsDouble("weight"));
+			WeightRegistry.INSTANCE.registerOre(node.get("ore"), node.getAsDouble("weight"));
 		}
 		else if(type.equalsIgnoreCase("fluid"))
 		{
@@ -107,6 +126,22 @@ public class WeightLoader
 		else if(type.equalsIgnoreCase("defaultWeight"))
 		{
 			WeightRegistry.INSTANCE.setDefaultWeight(node.getAsDouble("weight"));
+		}
+		else if(type.equalsIgnoreCase("size"))
+		{
+			Item item = Item.getByNameOrId(node.get("name"));
+			if(item == null)
+			{
+				errors.add("Line ["+currentIndex+"] has a Null Item");
+				return;
+			}
+			int size = node.getAsInt("maxsize");
+			if(size < 1 || size > 64)
+			{
+				errors.add("Line ["+currentIndex+"] custom Max ItemStacksize goes out of bounds valid bounds [1-64]");
+				return;
+			}
+			item.setMaxStackSize(size);
 		}
 	}
 	

@@ -12,6 +12,7 @@ import org.apache.commons.lang3.mutable.MutableInt;
 
 import com.google.gson.JsonObject;
 
+import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.ai.attributes.IAttributeInstance;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.potion.PotionEffect;
@@ -19,19 +20,16 @@ import playerWeight.api.IWeightEffect;
 import playerWeight.api.WeightRegistry;
 import playerWeight.misc.JsonHelper;
 
-public class ApplyPotionEffects implements IWeightEffect
+public class ApplyPotionEffects extends BaseEffect
 {
 	Map<UUID, MutableInt> countdowns = new HashMap<UUID, MutableInt>();
 	List<PotionEffect> effects = new ArrayList<PotionEffect>();
 	final int coolDown;
-	double minWeight;
-	double maxWeight;
 	
 	public ApplyPotionEffects(JsonObject obj)
 	{
+		super(obj.get("min").getAsDouble(), obj.get("max").getAsDouble(), false, JsonHelper.getOrDefault(obj, "effectRidden", false));
 		coolDown = JsonHelper.getOrDefault(obj, "cooldown", 0);
-		minWeight = obj.get("min").getAsDouble();
-		maxWeight = obj.get("max").getAsDouble();
 		JsonHelper.convertToObject(obj.get("potions"), new Consumer<JsonObject>(){
 			@Override
 			public void accept(JsonObject t)
@@ -47,19 +45,6 @@ public class ApplyPotionEffects implements IWeightEffect
 	}
 	
 	@Override
-	public double minWeight()
-	{
-		return minWeight;
-	}
-
-
-	@Override
-	public double maxWeight()
-	{
-		return maxWeight;
-	}
-	
-	@Override
 	public void applyToPlayer(EntityPlayer player, double weight, double maxWeight, IAttributeInstance maxWeightInstance)
 	{
 		MutableInt countdown = getCounter(player);
@@ -67,9 +52,10 @@ public class ApplyPotionEffects implements IWeightEffect
 		if(countdown.getValue() < 0)
 		{
 			countdown.setValue(coolDown);
+			EntityLivingBase base = getLowestEntity(player);
 			for(PotionEffect effect : effects)
 			{
-				player.addPotionEffect(new PotionEffect(effect));
+				base.addPotionEffect(new PotionEffect(effect));
 			}
 		}
 	}
@@ -86,6 +72,12 @@ public class ApplyPotionEffects implements IWeightEffect
 		countdowns.remove(player.getUniqueID());
 	}
 	
+	@Override
+	public void onServerStop()
+	{
+		countdowns.clear();
+	}
+	
 	public MutableInt getCounter(EntityPlayer player)
 	{
 		MutableInt data = countdowns.get(player.getUniqueID());
@@ -95,12 +87,6 @@ public class ApplyPotionEffects implements IWeightEffect
 			countdowns.put(player.getUniqueID(), data);
 		}
 		return data;
-	}
-
-	@Override
-	public boolean isPassive()
-	{
-		return false;
 	}
 	
 	public static void register()

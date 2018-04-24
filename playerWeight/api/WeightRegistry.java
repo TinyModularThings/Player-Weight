@@ -8,6 +8,7 @@ import java.util.function.Function;
 
 import com.google.gson.JsonObject;
 
+import net.minecraft.block.Block;
 import net.minecraft.entity.ai.attributes.IAttribute;
 import net.minecraft.entity.ai.attributes.RangedAttribute;
 import net.minecraft.entity.player.EntityPlayer;
@@ -15,6 +16,8 @@ import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.FluidStack;
+import net.minecraftforge.items.CapabilityItemHandler;
+import net.minecraftforge.items.IItemHandler;
 import net.minecraftforge.oredict.OreDictionary;
 
 public enum WeightRegistry
@@ -29,6 +32,7 @@ public enum WeightRegistry
 	Map<Fluid, Double> fluidWeight = new LinkedHashMap<Fluid, Double>();
 	double defaultWeight = 0D;
 	Map<String, Function<JsonObject, IWeightEffect>> registry = new HashMap<String, Function<JsonObject, IWeightEffect>>();
+	Map<Item, Function<ItemStack, IItemHandler>> invRegistry = new HashMap<Item, Function<ItemStack, IItemHandler>>();
 	
 	public void setDefaultWeight(double value)
 	{
@@ -131,5 +135,58 @@ public enum WeightRegistry
 			return null;
 		}
 		return registry.get(id.toLowerCase(Locale.ENGLISH));
+	}
+	
+	public void registerItemHandler(Function<ItemStack, IItemHandler> itemHandler, Item item)
+	{
+		invRegistry.put(item, itemHandler);
+	}
+	
+	public void registerItemHandler(Function<ItemStack, IItemHandler> itemHandler, Item...items)
+	{
+		for(Item item : items)
+		{
+			invRegistry.put(item, itemHandler);
+		}
+	}
+	
+	public void registerItemHandler(Function<ItemStack, IItemHandler> itemHandler, Block block)
+	{
+		Item item = Item.getItemFromBlock(block);
+		if(item != null)
+		{
+			invRegistry.put(item, itemHandler);
+		}
+	}
+	
+	public void registerItemHandler(Function<ItemStack, IItemHandler> itemHandler, Block...blocks)
+	{
+		for(Block block : blocks)
+		{
+			Item item = Item.getItemFromBlock(block);
+			if(item != null)
+			{
+				invRegistry.put(item, itemHandler);
+			}
+		}
+	}
+	
+	public IItemHandler getItemHandler(ItemStack stack)
+	{
+		Function<ItemStack, IItemHandler> handler = invRegistry.get(stack.getItem());
+		if(handler == null)
+		{
+			return getIItemHandler(null, stack);
+		}
+		return getIItemHandler(handler.apply(stack), stack);
+	}
+	
+	private IItemHandler getIItemHandler(IItemHandler base, ItemStack stack)
+	{
+		if(base == null)
+		{
+			return stack.hasCapability(CapabilityItemHandler.ITEM_HANDLER_CAPABILITY, null) ? stack.getCapability(CapabilityItemHandler.ITEM_HANDLER_CAPABILITY, null) : null;
+		}
+		return base;
 	}
 }

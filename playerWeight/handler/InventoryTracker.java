@@ -5,10 +5,11 @@ import java.util.UUID;
 import net.minecraft.inventory.Container;
 import net.minecraft.inventory.IContainerListener;
 import net.minecraft.inventory.IInventory;
+import net.minecraft.inventory.IInventoryChangedListener;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.NonNullList;
 
-public class InventoryTracker implements IContainerListener
+public class InventoryTracker implements IContainerListener, IInventoryChangedListener
 {
 	UUID player;
 	
@@ -54,5 +55,11 @@ public class InventoryTracker implements IContainerListener
 			return other.player.equals(player);
 		}
 		return false;
+	}
+
+	@Override
+	public void onInventoryChanged(IInventory invBasic)
+	{
+		PlayerHandler.INSTANCE.dirtyPlayers.add(player);
 	}
 }

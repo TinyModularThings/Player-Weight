@@ -14,7 +14,7 @@ import net.minecraftforge.fml.common.FMLCommonHandler;
 import playerWeight.api.IWeightEffect;
 import playerWeight.api.WeightRegistry;
 
-public class ApplyAdvancementIncrease implements IWeightEffect
+public class ApplyAdvancementIncrease extends BaseEffect
 {
 	ResourceLocation location;
 	AttributeModifier mods;
@@ -22,6 +22,7 @@ public class ApplyAdvancementIncrease implements IWeightEffect
 	
 	public ApplyAdvancementIncrease(JsonObject obj)
 	{
+		super(0, Double.MAX_VALUE, true);
 		location = new ResourceLocation(obj.get("name").getAsString());
 		mods = new AttributeModifier(obj.get("effectName").getAsString(), obj.get("amount").getAsDouble(), obj.get("effectType").getAsInt());
 	}
@@ -39,29 +40,10 @@ public class ApplyAdvancementIncrease implements IWeightEffect
 	}
 	
 	@Override
-	public void onPlayerUnloaded(EntityPlayer player)
+	public void onServerStop()
 	{
-		
-	}
-	
-	@Override
-	public void clearEffects(EntityPlayer player)
-	{
-		
-	}
-	
-	@Override
-	public double minWeight()
-	{
-		return 0;
-	}
-	
-	@Override
-	public double maxWeight()
-	{
-		return Double.MAX_VALUE;
-	}
-	
+		adv = null;
+	}	
 	public Advancement getAdv()
 	{
 		if(adv == null)
@@ -69,12 +51,6 @@ public class ApplyAdvancementIncrease implements IWeightEffect
 			adv = FMLCommonHandler.instance().getMinecraftServerInstance().getAdvancementManager().getAdvancement(location);
 		}
 		return adv;
-	}
-	
-	@Override
-	public boolean isPassive()
-	{
-		return true;
 	}
 	
 	public static void register()

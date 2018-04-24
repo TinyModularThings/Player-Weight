@@ -7,6 +7,7 @@ import org.lwjgl.opengl.GL11;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityPlayerSP;
 import net.minecraft.client.gui.FontRenderer;
+import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.gui.ScaledResolution;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.entity.Entity;
@@ -49,16 +50,7 @@ public final class ClientHandler
 		{
 			return;
 		}
-		double weight = WeightRegistry.INSTANCE.getWeight(stack);
-		FluidStack fluid = FluidUtil.getFluidContained(stack);
-		if(fluid != null)
-		{
-			weight += WeightRegistry.INSTANCE.getWeight(fluid);
-		}
-		List<String> tooltips = event.getToolTip();
-		tooltips.add("Item Weight: " + createToolTip(weight));
-		weight *= (double)stack.getCount();
-		tooltips.add("Stack Weight: " + createToolTip(weight));
+		event.getToolTip().add((GuiScreen.isShiftKeyDown() ? "Stack Weight: " : "Item Weight: ") + createToolTip(PlayerHandler.calculateStack(stack, GuiScreen.isShiftKeyDown())));
 	}
 	
 	@SubscribeEvent

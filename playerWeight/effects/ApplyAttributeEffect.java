@@ -9,26 +9,24 @@ import net.minecraft.entity.ai.attributes.IAttributeInstance;
 import net.minecraft.entity.player.EntityPlayer;
 import playerWeight.api.IWeightEffect;
 import playerWeight.api.WeightRegistry;
+import playerWeight.misc.JsonHelper;
 
-public class ApplyAttributeEffect implements IWeightEffect
+public class ApplyAttributeEffect extends BaseEffect
 {
 	String name;
-	double minValue;
-	double maxValue;
 	AttributeModifier modifier;
 	
 	public ApplyAttributeEffect(JsonObject obj)
 	{
+		super(obj.get("min").getAsDouble(), obj.get("max").getAsDouble(), false, JsonHelper.getOrDefault(obj, "effectRidden", false));
 		name = obj.get("effect").getAsString();
-		minValue = obj.get("min").getAsDouble();
-		maxValue = obj.get("max").getAsDouble();
 		modifier = new AttributeModifier(obj.get("id").getAsString(), obj.get("amount").getAsDouble(), obj.get("modifierType").getAsInt());
 	}
 	
 	@Override
 	public void applyToPlayer(EntityPlayer player, double weight, double maxWeight, IAttributeInstance maxWeightInstance)
 	{
-		IAttributeInstance instance = player.getAttributeMap().getAttributeInstanceByName(name);
+		IAttributeInstance instance = getLowestEntity(player).getAttributeMap().getAttributeInstanceByName(name);
 		if(!instance.hasModifier(modifier))
 		{
 			instance.applyModifier(modifier);
@@ -36,38 +34,15 @@ public class ApplyAttributeEffect implements IWeightEffect
 	}
 	
 	@Override
-	public void onPlayerUnloaded(EntityPlayer player)
-	{
-		
-	}
-	
-	@Override
 	public void clearEffects(EntityPlayer player)
 	{
-		player.getAttributeMap().getAttributeInstanceByName(name).removeModifier(modifier);
-	}
-	
-	@Override
-	public double minWeight()
-	{
-		return minValue;
-	}
-	
-	@Override
-	public double maxWeight()
-	{
-		return maxValue;
-	}
-	
-	@Override
-	public boolean isPassive()
-	{
-		return false;
+		getLowestEntity(player).getAttributeMap().getAttributeInstanceByName(name).removeModifier(modifier);
 	}
 	
 	public static void register()
 	{
-		WeightRegistry.INSTANCE.registerWeightEffect("attribute", new Function<JsonObject, IWeightEffect>(){
+		WeightRegistry.INSTANCE.registerWeightEffect("attribute", new Function<JsonObject, IWeightEffect>()
+		{
 			@Override
 			public IWeightEffect apply(JsonObject t)
 			{

@@ -14,19 +14,16 @@ import net.minecraft.entity.player.EntityPlayer;
 import playerWeight.api.IWeightEffect;
 import playerWeight.api.WeightRegistry;
 
-public class ApplyExhaustion implements IWeightEffect
+public class ApplyExhaustion extends BaseEffect
 {
 	Map<UUID, MutableInt> countdowns = new HashMap<UUID, MutableInt>();
 	float amount;
-	double minValue;
-	double maxValue;
 	final int cooldown;
 	
 	public ApplyExhaustion(JsonObject obj)
 	{
+		super(obj.get("min").getAsDouble(), obj.get("max").getAsDouble(), false);
 		amount = obj.get("amount").getAsFloat();
-		minValue = obj.get("min").getAsDouble();
-		maxValue = obj.get("max").getAsDouble();
 		cooldown = obj.get("cooldown").getAsInt();
 	}
 	
@@ -55,15 +52,9 @@ public class ApplyExhaustion implements IWeightEffect
 	}
 	
 	@Override
-	public double minWeight()
+	public void onServerStop()
 	{
-		return minValue;
-	}
-	
-	@Override
-	public double maxWeight()
-	{
-		return maxValue;
+		 countdowns.clear();
 	}
 	
 	public MutableInt getCounter(EntityPlayer player)
@@ -75,12 +66,6 @@ public class ApplyExhaustion implements IWeightEffect
 			countdowns.put(player.getUniqueID(), data);
 		}
 		return data;
-	}
-	
-	@Override
-	public boolean isPassive()
-	{
-		return false;
 	}
 	
 	public static void register()

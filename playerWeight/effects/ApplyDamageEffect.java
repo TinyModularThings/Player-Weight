@@ -14,8 +14,9 @@ import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.util.DamageSource;
 import playerWeight.api.IWeightEffect;
 import playerWeight.api.WeightRegistry;
+import playerWeight.misc.JsonHelper;
 
-public class ApplyDamageEffect implements IWeightEffect
+public class ApplyDamageEffect extends BaseEffect
 {
 	Map<UUID, MutableInt> countdowns = new HashMap<UUID, MutableInt>();
 	float amount;
@@ -24,6 +25,7 @@ public class ApplyDamageEffect implements IWeightEffect
 	
 	public ApplyDamageEffect(JsonObject obj)
 	{
+		super(0, Double.MAX_VALUE, false, JsonHelper.getOrDefault(obj, "effectRidden", false));
 		amount = obj.get("amount").getAsFloat();
 		cooldown = obj.get("cooldown").getAsInt();
 		percentLeft = obj.get("activation").getAsDouble() / 100;
@@ -42,7 +44,7 @@ public class ApplyDamageEffect implements IWeightEffect
 		if(counter.getValue() < 0)
 		{
 			counter.setValue(cooldown);
-			player.attackEntityFrom(DamageSource.MAGIC, amount);
+			getLowestEntity(player).attackEntityFrom(DamageSource.MAGIC, amount);
 		}
 	}
 	
@@ -59,21 +61,9 @@ public class ApplyDamageEffect implements IWeightEffect
 	}
 	
 	@Override
-	public double minWeight()
+	public void onServerStop()
 	{
-		return 0;
-	}
-	
-	@Override
-	public double maxWeight()
-	{
-		return Double.MAX_VALUE;
-	}
-	
-	@Override
-	public boolean isPassive()
-	{
-		return false;
+		countdowns.clear();
 	}
 	
 	public MutableInt getCounter(EntityPlayer player)

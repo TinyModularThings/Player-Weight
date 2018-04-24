@@ -6,8 +6,11 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.function.Function;
 
 import net.minecraft.command.ICommandSender;
+import net.minecraft.init.Blocks;
+import net.minecraft.item.ItemStack;
 import net.minecraft.util.text.TextComponentString;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.common.config.Configuration;
@@ -17,15 +20,21 @@ import net.minecraftforge.fml.common.Mod.EventHandler;
 import net.minecraftforge.fml.common.event.FMLPostInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLServerStartingEvent;
+import net.minecraftforge.fml.common.event.FMLServerStoppingEvent;
+import net.minecraftforge.items.IItemHandler;
+import playerWeight.api.WeightRegistry;
 import playerWeight.effects.ApplyAdvancementIncrease;
 import playerWeight.effects.ApplyAttributeEffect;
 import playerWeight.effects.ApplyDamageEffect;
 import playerWeight.effects.ApplyExhaustion;
+import playerWeight.effects.ApplyKillRidden;
 import playerWeight.effects.ApplyPotionEffects;
+import playerWeight.effects.ApplyPotionIncrease;
 import playerWeight.handler.ClientHandler;
 import playerWeight.handler.EffectLoader;
 import playerWeight.handler.PlayerHandler;
 import playerWeight.handler.WeightLoader;
+import playerWeight.misc.ShulkerBoxHandler;
 
 @Mod(name = "Player Weight", modid = "playerweight", version = "1.0", acceptedMinecraftVersions = "[1.12]")
 public class PlayerWeight
@@ -58,6 +67,15 @@ public class PlayerWeight
 		ApplyExhaustion.register();
 		ApplyDamageEffect.register();
 		ApplyAttributeEffect.register();
+		ApplyPotionIncrease.register();
+		ApplyKillRidden.register();
+		WeightRegistry.INSTANCE.registerItemHandler(new Function<ItemStack, IItemHandler>(){
+			@Override
+			public IItemHandler apply(ItemStack t)
+			{
+				return new ShulkerBoxHandler(t);
+			}
+		}, Blocks.WHITE_SHULKER_BOX, Blocks.ORANGE_SHULKER_BOX, Blocks.MAGENTA_SHULKER_BOX, Blocks.LIGHT_BLUE_SHULKER_BOX, Blocks.YELLOW_SHULKER_BOX, Blocks.LIME_SHULKER_BOX, Blocks.PINK_SHULKER_BOX, Blocks.GRAY_SHULKER_BOX, Blocks.SILVER_SHULKER_BOX, Blocks.CYAN_SHULKER_BOX, Blocks.PURPLE_SHULKER_BOX, Blocks.BLUE_SHULKER_BOX, Blocks.BROWN_SHULKER_BOX, Blocks.GREEN_SHULKER_BOX, Blocks.RED_SHULKER_BOX, Blocks.BLACK_SHULKER_BOX);
 	}
 	
 	@EventHandler
@@ -70,6 +88,12 @@ public class PlayerWeight
 	public void onServerStart(FMLServerStartingEvent event)
 	{
 		event.registerServerCommand(new PlayerWeightCommand());
+	}
+	
+	@EventHandler
+	public void onServerStop(FMLServerStoppingEvent event)
+	{
+		PlayerHandler.INSTANCE.onServerStop();
 	}
 	
 	public void reloadConfigs(boolean reload)

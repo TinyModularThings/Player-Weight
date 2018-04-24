@@ -12,6 +12,8 @@ public interface IWeightEffect
 	
 	public void clearEffects(EntityPlayer player);
 	
+	public void onServerStop();
+	
 	public double minWeight();
 	
 	public double maxWeight();

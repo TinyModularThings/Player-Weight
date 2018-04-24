@@ -14,12 +14,14 @@ import net.minecraft.entity.ai.attributes.AbstractAttributeMap;
 import net.minecraft.entity.ai.attributes.IAttributeInstance;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
+import net.minecraft.inventory.IInventory;
+import net.minecraft.inventory.InventoryBasic;
 import net.minecraft.item.ItemStack;
 import net.minecraftforge.event.entity.EntityEvent.EntityConstructing;
+import net.minecraftforge.event.entity.EntityMountEvent;
 import net.minecraftforge.event.entity.player.PlayerContainerEvent;
 import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fluids.FluidUtil;
-import net.minecraftforge.fml.common.FMLLog;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.gameevent.PlayerEvent.PlayerLoggedInEvent;
 import net.minecraftforge.fml.common.gameevent.PlayerEvent.PlayerLoggedOutEvent;
@@ -27,6 +29,7 @@ import net.minecraftforge.fml.common.gameevent.TickEvent.Phase;
 import net.minecraftforge.fml.common.gameevent.TickEvent.PlayerTickEvent;
 import net.minecraftforge.items.CapabilityItemHandler;
 import net.minecraftforge.items.IItemHandler;
+import net.minecraftforge.items.wrapper.InvWrapper;
 import playerWeight.PlayerWeight;
 import playerWeight.api.IWeightEffect;
 import playerWeight.api.WeightRegistry;
@@ -45,6 +48,51 @@ public final class PlayerHandler
 	public void onContainerOpened(PlayerContainerEvent.Open event)
 	{
 		event.getContainer().addListener(new InventoryTracker(event.getEntityPlayer().getUniqueID()));
+	}
+	
+	@SubscribeEvent
+	public void onPlayerMount(EntityMountEvent event)
+	{
+		if(event.getEntityMounting() instanceof EntityPlayer)
+		{
+			EntityPlayer player = (EntityPlayer)event.getEntityMounting();
+			dirtyPlayers.add(player.getUniqueID());
+			for(IWeightEffect effect : playerEffects.getOrDefault(player.getUniqueID(), EMPTY_EFFECTS))
+			{
+				effect.clearEffects(player);
+			}
+			InventoryTracker tracker = new InventoryTracker(player.getUniqueID());
+			Entity toMount = event.getEntityBeingMounted();
+			do
+			{
+				updateTracker(toMount, tracker, event.isMounting());
+				toMount = toMount.getRidingEntity();
+			}
+			while(toMount != null);
+		}
+	}
+	
+	private void updateTracker(Entity entity, InventoryTracker tracker, boolean mount)
+	{
+		if(entity.hasCapability(CapabilityItemHandler.ITEM_HANDLER_CAPABILITY, null))
+		{
+			IItemHandler handler = entity.getCapability(CapabilityItemHandler.ITEM_HANDLER_CAPABILITY, null);
+			if(handler instanceof InvWrapper)
+			{
+				IInventory inv = ((InvWrapper)handler).getInv();
+				if(inv instanceof InventoryBasic)
+				{
+					if(mount)
+					{
+						((InventoryBasic)inv).addInventoryChangeListener(tracker);
+					}
+					else
+					{
+						((InventoryBasic)inv).removeInventoryChangeListener(tracker);
+					}
+				}
+			}
+		}
 	}
 	
 	@SubscribeEvent
@@ -84,6 +132,19 @@ public final class PlayerHandler
 		}
 	}
 	
+	public void onServerStop()
+	{
+		playerEffects.clear();
+		for(IWeightEffect effect : effects)
+		{
+			effect.onServerStop();
+		}
+		for(IWeightEffect effect : passiveEffects)
+		{
+			effect.onServerStop();
+		}
+	}
+	
 	public void addEffect(IWeightEffect effect)
 	{
 		if(effect == null)
@@ -107,15 +168,16 @@ public final class PlayerHandler
 		{
 			return;
 		}
+		if(event.side.isClient())
+		{
+			dirtyPlayers.clear();
+			return;
+		}
 		EntityPlayer player = event.player;
 		if(dirtyPlayers.contains(player.getUniqueID()))
 		{
 			dirtyPlayers.remove(player.getUniqueID());
 			updatePlayer(player);
-		}
-		if(event.side.isClient())
-		{
-			return;
 		}
 		AbstractAttributeMap map = player.getAttributeMap();
 		double weight = map.getAttributeInstance(WeightRegistry.WEIGHT).getBaseValue();
@@ -129,7 +191,6 @@ public final class PlayerHandler
 		{
 			return;
 		}
-		FMLLog.getLogger().info("Effects: "+effects);
 		for(IWeightEffect effect : passiveEffects)
 		{
 			effect.applyToPlayer(player, weight, max_weight, inst);
@@ -138,28 +199,17 @@ public final class PlayerHandler
 	
 	private void updatePlayer(EntityPlayer player)
 	{
-		IItemHandler handler = player.hasCapability(CapabilityItemHandler.ITEM_HANDLER_CAPABILITY, null) ? player.getCapability(CapabilityItemHandler.ITEM_HANDLER_CAPABILITY, null) : null;
-		if(handler == null)
+		double totalWeight = 0D;
+		Entity toCheck = player;
+		do
 		{
-			WeightRegistry.setPlayerWeight(player, 0D);
-			return;
-		}
-		double totalWeight = 0;
-		int size = handler.getSlots();
-		for(int i = 0;i<size;i++)
-		{
-			ItemStack stack = handler.getStackInSlot(i);
-			if(stack.isEmpty())
+			if(toCheck.hasCapability(CapabilityItemHandler.ITEM_HANDLER_CAPABILITY, null))
 			{
-				continue;
+				totalWeight += calculateWeight(toCheck.getCapability(CapabilityItemHandler.ITEM_HANDLER_CAPABILITY, null));
 			}
-			totalWeight += calculateStack(stack);
-			FluidStack fluid = FluidUtil.getFluidContained(stack);
-			if(fluid != null)
-			{
-				totalWeight += (WeightRegistry.INSTANCE.getWeight(fluid) * (double)stack.getCount());
-			}
+			toCheck = toCheck.getRidingEntity();
 		}
+		while(toCheck != null);
 		WeightRegistry.setPlayerWeight(player, totalWeight);
 		List<IWeightEffect> list = new ArrayList<IWeightEffect>();
 		for(IWeightEffect effect : effects)
@@ -176,32 +226,54 @@ public final class PlayerHandler
 		playerEffects.put(player.getUniqueID(), list);
 	}
 	
-	private double calculateStack(ItemStack item)
+	private double calculateWeight(IItemHandler handler)
 	{
-		if(item.hasCapability(CapabilityItemHandler.ITEM_HANDLER_CAPABILITY, null))
+		if(handler == null)
 		{
-			IItemHandler handler = item.getCapability(CapabilityItemHandler.ITEM_HANDLER_CAPABILITY, null);
-			if(handler == null)
+			return 0D;
+		}		
+		double totalWeight = 0;
+		int size = handler.getSlots();
+		for(int i = 0;i<size;i++)
+		{
+			ItemStack stack = handler.getStackInSlot(i);
+			if(stack.isEmpty())
 			{
-				return WeightRegistry.INSTANCE.getWeight(item) * (double)item.getCount();
+				continue;
 			}
-			int size = handler.getSlots();
-			double weight = 0D;
-			for(int i = 0;i<size;i++)
+			totalWeight += calculateStack(stack, true);
+			FluidStack fluid = FluidUtil.getFluidContained(stack);
+			if(fluid != null)
 			{
-				ItemStack stack = handler.getStackInSlot(i);
-				if(stack.isEmpty())
-				{
-					continue;
-				}
-				weight += calculateStack(stack);
-				FluidStack fluid = FluidUtil.getFluidContained(stack);
-				if(fluid != null)
-				{
-					weight += (WeightRegistry.INSTANCE.getWeight(fluid) * (double)stack.getCount());
-				}
+				totalWeight += (WeightRegistry.INSTANCE.getWeight(fluid) * (double)stack.getCount());
 			}
 		}
-		return WeightRegistry.INSTANCE.getWeight(item) * (double)item.getCount();
+		return totalWeight;
+	}
+	
+	static double calculateStack(ItemStack item, boolean stackSize)
+	{
+		IItemHandler handler = WeightRegistry.INSTANCE.getItemHandler(item);
+		if(handler == null)
+		{
+			return WeightRegistry.INSTANCE.getWeight(item) * (stackSize ? (double)item.getCount() : 1D);
+		}
+		int size = handler.getSlots();
+		double weight = WeightRegistry.INSTANCE.getWeight(item) * (stackSize ? (double)item.getCount() : 1D);
+		for(int i = 0;i<size;i++)
+		{
+			ItemStack stack = handler.getStackInSlot(i);
+			if(stack.isEmpty())
+			{
+				continue;
+			}
+			weight += calculateStack(stack, true);
+			FluidStack fluid = FluidUtil.getFluidContained(stack);
+			if(fluid != null)
+			{
+				weight += (WeightRegistry.INSTANCE.getWeight(fluid) * (stackSize ? (double)stack.getCount() : 1D));
+			}
+		}
+		return weight;
 	}
 }
