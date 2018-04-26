@@ -1,7 +1,9 @@
 package playerWeight.api;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.function.Function;
@@ -31,8 +33,15 @@ public enum WeightRegistry
 	Map<ItemEntry, Double> stackWeights = new LinkedHashMap<ItemEntry, Double>();
 	Map<Fluid, Double> fluidWeight = new LinkedHashMap<Fluid, Double>();
 	double defaultWeight = 0D;
+	double playerDefaultWeight = 0D;
 	Map<String, Function<JsonObject, IWeightEffect>> registry = new HashMap<String, Function<JsonObject, IWeightEffect>>();
 	Map<Item, Function<ItemStack, IItemHandler>> invRegistry = new HashMap<Item, Function<ItemStack, IItemHandler>>();
+	List<Function<EntityPlayer, IItemHandler>> extraInventories = new ArrayList<Function<EntityPlayer, IItemHandler>>();
+	
+	public void setPlayerDefaultWeight(double value)
+	{
+		playerDefaultWeight = value;
+	}
 	
 	public void setDefaultWeight(double value)
 	{
@@ -86,14 +95,14 @@ public enum WeightRegistry
 		return fluidWeight.getOrDefault(fluid.getFluid(), ((double)fluid.getFluid().getDensity(fluid) / 1000D) * ((double)fluid.amount / 1000D));
 	}
 	
-	public double getWeightForFluid(Fluid fluid)
-	{
-		return fluidWeight.getOrDefault(fluid, (double)fluid.getDensity() / 1000D);
-	}
-	
 	public double getWeight(ItemStack stack)
 	{
 		return stack.getMetadata() == Short.MAX_VALUE ? getWeightForItem(stack.getItem()) : stackWeights.getOrDefault(new ItemEntry(stack), getWeightForItem(stack.getItem()));
+	}
+	
+	public double getWeightForFluid(Fluid fluid)
+	{
+		return fluidWeight.getOrDefault(fluid, (double)fluid.getDensity() / 1000D);
 	}
 	
 	public double getWeightForItem(Item item)
@@ -115,6 +124,11 @@ public enum WeightRegistry
 		return defaultWeight;
 	}
 	
+	public double getDefaultPlayerWeight()
+	{
+		return playerDefaultWeight;
+	}
+	
 	public void clear()
 	{
 		itemWeights.clear();
@@ -131,6 +145,11 @@ public enum WeightRegistry
 	public static double getPlayerWeight(EntityPlayer player)
 	{
 		return player.getAttributeMap().getAttributeInstance(WEIGHT).getBaseValue();
+	}
+	
+	public static double getMaxPlayerWeight(EntityPlayer player)
+	{
+		return player.getAttributeMap().getAttributeInstance(MAX_WEIGHT).getAttributeValue();
 	}
 	
 	public void registerWeightEffect(String id, Function<JsonObject, IWeightEffect> function)
@@ -198,5 +217,44 @@ public enum WeightRegistry
 			return stack.hasCapability(CapabilityItemHandler.ITEM_HANDLER_CAPABILITY, null) ? stack.getCapability(CapabilityItemHandler.ITEM_HANDLER_CAPABILITY, null) : null;
 		}
 		return base;
+	}
+	
+	public void registerExtraPlayerInventory(Function<EntityPlayer, IItemHandler> handler)
+	{
+		if(handler == null)
+		{
+			return;
+		}
+		extraInventories.add(handler);
+	}
+	
+	public double getPlayerWeight(EntityPlayer player, Function<ItemStack, Double> function)
+	{
+		double totalWeight = calculateWeight(player.hasCapability(CapabilityItemHandler.ITEM_HANDLER_CAPABILITY, null) ? player.getCapability(CapabilityItemHandler.ITEM_HANDLER_CAPABILITY, null) : null, function);
+		for(Function<EntityPlayer, IItemHandler> entry : extraInventories)
+		{
+			totalWeight += calculateWeight(entry.apply(player), function);
+		}
+		return totalWeight;
+	}
+	
+	private double calculateWeight(IItemHandler handler, Function<ItemStack, Double> function)
+	{
+		if(handler == null)
+		{
+			return 0D;
+		}
+		double weight = 0D;
+		int size = handler.getSlots();
+		for(int i = 0;i<size;i++)
+		{
+			ItemStack stack = handler.getStackInSlot(i);
+			if(stack.isEmpty())
+			{
+				continue;
+			}
+			weight += function.apply(stack);
+		}
+		return weight;
 	}
 }

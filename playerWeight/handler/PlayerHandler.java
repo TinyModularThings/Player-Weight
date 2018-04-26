@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Function;
 
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.ai.attributes.AbstractAttributeMap;
@@ -199,9 +200,15 @@ public final class PlayerHandler
 	
 	private void updatePlayer(EntityPlayer player)
 	{
-		double totalWeight = 0D;
-		Entity toCheck = player;
-		do
+		double totalWeight = WeightRegistry.INSTANCE.getDefaultPlayerWeight() + WeightRegistry.INSTANCE.getPlayerWeight(player, new Function<ItemStack, Double>(){
+			@Override
+			public Double apply(ItemStack t)
+			{
+				return calculateStack(t, true);
+			}
+		});
+		Entity toCheck = player.getRidingEntity();
+		while(toCheck != null)
 		{
 			if(toCheck.hasCapability(CapabilityItemHandler.ITEM_HANDLER_CAPABILITY, null))
 			{
@@ -209,19 +216,35 @@ public final class PlayerHandler
 			}
 			toCheck = toCheck.getRidingEntity();
 		}
-		while(toCheck != null);
-		WeightRegistry.setPlayerWeight(player, totalWeight);
-		List<IWeightEffect> list = new ArrayList<IWeightEffect>();
-		for(IWeightEffect effect : effects)
+		if(totalWeight < 0D)
 		{
-			if(totalWeight >= effect.minWeight() && totalWeight <= effect.maxWeight())
-			{
-				list.add(effect);
-			}
+			totalWeight = 0D;
 		}
+		WeightRegistry.setPlayerWeight(player, totalWeight);
 		for(IWeightEffect effect : playerEffects.getOrDefault(player.getUniqueID(), EMPTY_EFFECTS))
 		{
 			effect.clearEffects(player);
+		}
+		double max = WeightRegistry.getMaxPlayerWeight(player);
+		double current = totalWeight / max;
+		
+		List<IWeightEffect> list = new ArrayList<IWeightEffect>();
+		for(IWeightEffect effect : effects)
+		{
+			if(effect.isPercent())
+			{
+				if(current >= effect.minWeight() && current <= effect.maxWeight())
+				{
+					list.add(effect);
+				}
+			}
+			else
+			{
+				if(totalWeight >= effect.minWeight() && totalWeight <= effect.maxWeight())
+				{
+					list.add(effect);
+				}
+			}
 		}
 		playerEffects.put(player.getUniqueID(), list);
 	}

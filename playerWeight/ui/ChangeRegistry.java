@@ -123,6 +123,11 @@ public final class ChangeRegistry
 		changes.remove(change);
 	}
 	
+	public boolean hasChanges()
+	{
+		return changes.size() > 0;
+	}
+	
 	int loadChanges()
 	{
 		int totalChanges = 0;

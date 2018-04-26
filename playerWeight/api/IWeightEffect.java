@@ -20,4 +20,6 @@ public interface IWeightEffect
 	
 	public boolean isPassive();
 	
+	public boolean isPercent();
+	
 }

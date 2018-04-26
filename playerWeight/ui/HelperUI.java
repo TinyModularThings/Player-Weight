@@ -1,14 +1,16 @@
 package playerWeight.ui;
 
-import java.awt.EventQueue;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.util.ArrayList;
 import java.util.List;
 
 import javax.swing.ButtonGroup;
 import javax.swing.JButton;
 import javax.swing.JFrame;
+import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JRadioButton;
@@ -23,6 +25,8 @@ import net.minecraft.item.ItemStack;
 import net.minecraftforge.fml.common.FMLCommonHandler;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
+import playerWeight.api.WeightRegistry;
+import playerWeight.handler.ClientHandler;
 import playerWeight.ui.typeEntry.ITypeEntry;
 
 public class HelperUI extends JFrame
@@ -37,9 +41,30 @@ public class HelperUI extends JFrame
 	int currentType = -1;
 	final List<ITypeEntry> currentList = new ArrayList<ITypeEntry>();
 	private JButton giveItem;
+	private JLabel defaultWeight;
+	private JLabel lblDefaultPlayerWeight;
+
 	
 	public HelperUI()
 	{
+		addWindowListener(new WindowAdapter() {
+			@Override
+			public void windowClosing(WindowEvent e) {
+				int close = JOptionPane.showConfirmDialog(null, "Do you really want to close this window. (You have to restart the Game to open it again)", "Close Window", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
+				if(close == 0)
+				{
+					if(ChangeRegistry.INSTANCE.hasChanges())
+					{
+						close = JOptionPane.showConfirmDialog(null, "You have Unexported Changes. These are lost. Do you really want to close this window?", "Close Window", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
+						if(close != 0)
+						{
+							return;
+						}
+					}
+					HelperUI.this.dispose();
+				}
+			}
+		});
 		initUI();
 		onListChange(0);
 	}
@@ -48,7 +73,7 @@ public class HelperUI extends JFrame
 	{
 		setResizable(false);
 		setTitle("CustomParser");
-		setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+		setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
 		setBounds(100, 100, 844, 541);
 		contentPane = new JPanel();
 		contentPane.setBorder(new EmptyBorder(5, 5, 5, 5));
@@ -291,8 +316,60 @@ public class HelperUI extends JFrame
 				JOptionPane.showConfirmDialog(null, "Loaded " + total + " Changes from Existing Files", "Load Changes", JOptionPane.CLOSED_OPTION, JOptionPane.INFORMATION_MESSAGE);
 			}
 		});
-		btnNewButton_2.setBounds(612, 434, 155, 23);
+		btnNewButton_2.setBounds(605, 434, 178, 23);
 		contentPane.add(btnNewButton_2);
+		
+		JButton btnNewButton_3 = new JButton("Set Default Weight");
+		btnNewButton_3.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				String value = JOptionPane.showInputDialog(null, "Please type in the Weight", "Setting Default Weight", JOptionPane.QUESTION_MESSAGE);
+				try
+				{
+					ChangeRegistry.INSTANCE.removeChange("<type=defaultWeight weight="+WeightRegistry.INSTANCE.getDefaultWeight()+">");
+					double result = Double.parseDouble(value);
+					WeightRegistry.INSTANCE.setDefaultWeight(result);
+					ChangeRegistry.INSTANCE.addChange("<type=defaultWeight weight="+WeightRegistry.INSTANCE.getDefaultWeight()+">");
+					defaultWeight.setText("Default-Weight: "+ClientHandler.createToolTip(WeightRegistry.INSTANCE.getDefaultWeight()));
+				}
+				catch(Exception e2)
+				{
+					e2.printStackTrace();
+					JOptionPane.showConfirmDialog(null, "Number can not be parsed", "Setting Default Weight", JOptionPane.CLOSED_OPTION, JOptionPane.ERROR_MESSAGE);
+				}
+			}
+		});
+		btnNewButton_3.setBounds(548, 231, 171, 23);
+		contentPane.add(btnNewButton_3);
+		
+		defaultWeight = new JLabel("Default-Weight: "+ClientHandler.createToolTip(WeightRegistry.INSTANCE.getDefaultWeight()));
+		defaultWeight.setBounds(548, 265, 171, 14);
+		contentPane.add(defaultWeight);
+		
+		JButton btnNewButton_4 = new JButton("Set Player Weight");
+		btnNewButton_4.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				String value = JOptionPane.showInputDialog(null, "Please type in the Weight", "Setting Player Weight", JOptionPane.QUESTION_MESSAGE);
+				try
+				{
+					ChangeRegistry.INSTANCE.removeChange("<type=defaultPlayerWeight weight="+WeightRegistry.INSTANCE.getDefaultPlayerWeight()+">");
+					double result = Double.parseDouble(value);
+					WeightRegistry.INSTANCE.setPlayerDefaultWeight(result);
+					ChangeRegistry.INSTANCE.addChange("<type=defaultPlayerWeight weight="+WeightRegistry.INSTANCE.getDefaultPlayerWeight()+">");
+					lblDefaultPlayerWeight.setText("Default Player Weight: "+ClientHandler.createToolTip(WeightRegistry.INSTANCE.getDefaultPlayerWeight()));
+				}
+				catch(Exception e2)
+				{
+					e2.printStackTrace();
+					JOptionPane.showConfirmDialog(null, "Number can not be parsed", "Setting Player Weight", JOptionPane.CLOSED_OPTION, JOptionPane.ERROR_MESSAGE);
+				}
+			}
+		});
+		btnNewButton_4.setBounds(548, 290, 171, 23);
+		contentPane.add(btnNewButton_4);
+		
+		lblDefaultPlayerWeight = new JLabel("Default Player Weight: "+ClientHandler.createToolTip(WeightRegistry.INSTANCE.getDefaultPlayerWeight()));
+		lblDefaultPlayerWeight.setBounds(548, 324, 171, 14);
+		contentPane.add(lblDefaultPlayerWeight);
 	}
 	
 	public void onListChange(int type)
@@ -325,6 +402,13 @@ public class HelperUI extends JFrame
 		if(entry.isChanged(false))
 		{
 			ChangeRegistry.INSTANCE.removeChange(entry.makeChange(false));
+		}
+		for(ITypeEntry subEntry : entry.getSubEntries())
+		{
+			if(subEntry.isChanged(false))
+			{
+				ChangeRegistry.INSTANCE.removeChange(subEntry.makeChange(false));
+			}
 		}
 	}
 	

@@ -75,7 +75,7 @@ public final class ClientHandler
 		GlStateManager.enableBlend();
 	}
 	
-	private String createToolTip(double weight)
+	public static String createToolTip(double weight)
 	{
 		if(weight >= 1000D)
 		{

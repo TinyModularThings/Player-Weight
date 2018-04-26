@@ -21,24 +21,18 @@ public class ApplyDamageEffect extends BaseEffect
 	Map<UUID, MutableInt> countdowns = new HashMap<UUID, MutableInt>();
 	float amount;
 	int cooldown;
-	double percentLeft;
 	
 	public ApplyDamageEffect(JsonObject obj)
 	{
-		super(0, Double.MAX_VALUE, false, JsonHelper.getOrDefault(obj, "effectRidden", false));
+		super(obj.get("activation").getAsDouble() / 100, Double.MAX_VALUE, false, JsonHelper.getOrDefault(obj, "effectRidden", false));
 		amount = obj.get("amount").getAsFloat();
 		cooldown = obj.get("cooldown").getAsInt();
-		percentLeft = obj.get("activation").getAsDouble() / 100;
+		setIsPercent(true);
 	}
 	
 	@Override
 	public void applyToPlayer(EntityPlayer player, double weight, double maxWeight, IAttributeInstance maxWeightInstance)
 	{
-		double scale = weight / maxWeight;
-		if(scale < percentLeft)
-		{
-			return;
-		}
 		MutableInt counter = getCounter(player);
 		counter.decrement();
 		if(counter.getValue() < 0)

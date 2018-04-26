@@ -30,6 +30,7 @@ public class ApplyPotionEffects extends BaseEffect
 	{
 		super(obj.get("min").getAsDouble(), obj.get("max").getAsDouble(), false, JsonHelper.getOrDefault(obj, "effectRidden", false));
 		coolDown = JsonHelper.getOrDefault(obj, "cooldown", 0);
+		setIsPercent(JsonHelper.getOrDefault(obj, "percent", false));
 		JsonHelper.convertToObject(obj.get("potions"), new Consumer<JsonObject>(){
 			@Override
 			public void accept(JsonObject t)

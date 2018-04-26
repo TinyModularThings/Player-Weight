@@ -130,6 +130,10 @@ public class WeightLoader
 		{
 			WeightRegistry.INSTANCE.setDefaultWeight(node.getAsDouble("weight"));
 		}
+		else if(type.equalsIgnoreCase("defaultPlayerWeight"))
+		{
+			WeightRegistry.INSTANCE.setPlayerDefaultWeight(node.getAsDouble("weight"));
+		}
 		else if(type.equalsIgnoreCase("size"))
 		{
 			Item item = Item.getByNameOrId(node.get("name"));

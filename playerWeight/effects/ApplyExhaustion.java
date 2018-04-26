@@ -13,6 +13,7 @@ import net.minecraft.entity.ai.attributes.IAttributeInstance;
 import net.minecraft.entity.player.EntityPlayer;
 import playerWeight.api.IWeightEffect;
 import playerWeight.api.WeightRegistry;
+import playerWeight.misc.JsonHelper;
 
 public class ApplyExhaustion extends BaseEffect
 {
@@ -23,6 +24,7 @@ public class ApplyExhaustion extends BaseEffect
 	public ApplyExhaustion(JsonObject obj)
 	{
 		super(obj.get("min").getAsDouble(), obj.get("max").getAsDouble(), false);
+		setIsPercent(JsonHelper.getOrDefault(obj, "percent", false));
 		amount = obj.get("amount").getAsFloat();
 		cooldown = obj.get("cooldown").getAsInt();
 	}

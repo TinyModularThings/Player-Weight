@@ -11,6 +11,7 @@ public abstract class BaseEffect implements IWeightEffect
 	double min;
 	double max;
 	boolean effectRidden;
+	boolean isPercent;
 	
 	public BaseEffect(double min, double max, boolean passive, boolean effectRidden)
 	{
@@ -24,6 +25,12 @@ public abstract class BaseEffect implements IWeightEffect
 		this.min = min;
 		this.max = max;
 		effectRidden = false;
+		isPercent = false;
+	}
+	
+	public void setIsPercent(boolean value)
+	{
+		isPercent = value;
 	}
 	
 	@Override
@@ -60,6 +67,12 @@ public abstract class BaseEffect implements IWeightEffect
 	public boolean isPassive()
 	{
 		return passive;
+	}
+	
+	@Override
+	public boolean isPercent()
+	{
+		return isPercent;
 	}
 	
 	public EntityLivingBase getLowestEntity(EntityPlayer player)

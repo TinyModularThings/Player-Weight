@@ -14,6 +14,7 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.util.text.TextComponentString;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.common.config.Configuration;
+import net.minecraftforge.fml.common.FMLCommonHandler;
 import net.minecraftforge.fml.common.FMLLog;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.Mod.EventHandler;
@@ -84,7 +85,7 @@ public class PlayerWeight
 	@EventHandler
 	public void onPostLoad(FMLPostInitializationEvent evt)
 	{
-		if(loadUI)
+		if(loadUI && FMLCommonHandler.instance().getSide().isClient())
 		{
 			ChangeRegistry.INSTANCE.init();
 			reload();

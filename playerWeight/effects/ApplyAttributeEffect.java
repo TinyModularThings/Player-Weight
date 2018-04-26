@@ -19,6 +19,7 @@ public class ApplyAttributeEffect extends BaseEffect
 	public ApplyAttributeEffect(JsonObject obj)
 	{
 		super(obj.get("min").getAsDouble(), obj.get("max").getAsDouble(), false, JsonHelper.getOrDefault(obj, "effectRidden", false));
+		setIsPercent(JsonHelper.getOrDefault(obj, "percent", false));
 		name = obj.get("effect").getAsString();
 		modifier = new AttributeModifier(obj.get("id").getAsString(), obj.get("amount").getAsDouble(), obj.get("modifierType").getAsInt());
 	}
