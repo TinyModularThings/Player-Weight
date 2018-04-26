@@ -92,7 +92,7 @@ public enum WeightRegistry
 	
 	public double getWeight(FluidStack fluid)
 	{
-		return fluidWeight.getOrDefault(fluid.getFluid(), ((double)fluid.getFluid().getDensity(fluid) / 1000D) * ((double)fluid.amount / 1000D));
+		return fluidWeight.getOrDefault(fluid.getFluid(), ((double)fluid.getFluid().getDensity(fluid) / 1000D)) * ((double)fluid.amount / 1000D);
 	}
 	
 	public double getWeight(ItemStack stack)

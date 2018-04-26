@@ -21,4 +21,16 @@ public interface ITypeEntry
 	public boolean isChanged(boolean size);
 	
 	public List<ITypeEntry> getSubEntries();
+	
+	public int sort(ITypeEntry other, SorterType type);
+	
+	public static enum SorterType
+	{
+		ID,
+		IDMeta,
+		Name,
+		Mod,
+		Weight,
+		ItemSize;
+	}
 }

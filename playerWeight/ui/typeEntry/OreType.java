@@ -4,6 +4,8 @@ import java.util.LinkedList;
 import java.util.List;
 
 import net.minecraft.item.ItemStack;
+import net.minecraftforge.oredict.OreDictionary;
+import playerWeight.handler.ClientHandler;
 
 public class OreType implements ITypeEntry
 {
@@ -25,7 +27,7 @@ public class OreType implements ITypeEntry
 	@Override
 	public String getData(int index)
 	{
-		if(index == 1) return ""+weight;
+		if(index == 1) return ClientHandler.createToolTip(weight);
 		return type;
 	}
 
@@ -81,5 +83,43 @@ public class OreType implements ITypeEntry
 	public List<ITypeEntry> getSubEntries()
 	{
 		return representive;
+	}
+	
+	@Override
+	public int sort(ITypeEntry other, SorterType sorter)
+	{
+		if(other instanceof OreType)
+		{
+			OreType ore = (OreType)other;
+			if(sorter == SorterType.ID)
+			{
+				int first = OreDictionary.getOreID(type);
+				int second = OreDictionary.getOreID(ore.type);
+				if(first < second)
+				{
+					return -1;
+				}
+				else if(first > second)
+				{
+					return 1;
+				}
+			}
+			else if(sorter == SorterType.Name)
+			{
+				return type.compareTo(ore.type);
+			}
+			else if(sorter == SorterType.Weight)
+			{
+				if(weight > ore.weight)
+				{
+					return -1;
+				}
+				else if(weight < ore.weight)
+				{
+					return 1;
+				}
+			}
+		}
+		return 0;
 	}
 }

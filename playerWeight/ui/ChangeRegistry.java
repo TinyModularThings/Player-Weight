@@ -96,9 +96,11 @@ public final class ChangeRegistry
 			}
 			entries[2].add(entry);
 		}
+		int i = 0;
 		for(Fluid fluid : FluidRegistry.getRegisteredFluids().values())
 		{
-			entries[3].add(new FluidType(fluid, WeightRegistry.INSTANCE.getWeightForFluid(fluid)));
+			entries[3].add(new FluidType(fluid, WeightRegistry.INSTANCE.getWeightForFluid(fluid), i));
+			i++;
 		}
 		WeightRegistry.INSTANCE.setDefaultWeight(lastDefaultWeight);
 	}
