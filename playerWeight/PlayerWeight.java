@@ -35,6 +35,8 @@ import playerWeight.handler.EffectLoader;
 import playerWeight.handler.PlayerHandler;
 import playerWeight.handler.WeightLoader;
 import playerWeight.misc.ShulkerBoxHandler;
+import playerWeight.ui.ChangeRegistry;
+import playerWeight.ui.HelperUI;
 
 @Mod(name = "Player Weight", modid = "playerweight", version = "1.0", acceptedMinecraftVersions = "[1.12]")
 public class PlayerWeight
@@ -45,13 +47,13 @@ public class PlayerWeight
 	WeightLoader loader = new WeightLoader();
 	EffectLoader effects = new EffectLoader();
 	Configuration config;
-	File configFolder;
+	public File configFolder;
+	boolean loadUI;
 	
 	List<File> weightFiles = new LinkedList<File>();
 	List<File> effectFiles = new LinkedList<File>();
 	
 	Map<File, List<String>> errorMap = new LinkedHashMap<File, List<String>>();
-	
 	
 	@EventHandler
 	public void onPreLoad(FMLPreInitializationEvent evt)
@@ -61,6 +63,7 @@ public class PlayerWeight
 		MinecraftForge.EVENT_BUS.register(ClientHandler.INSTANCE);
 		configFolder = new File(evt.getModConfigurationDirectory(), "playerWeight");
 		config = new Configuration(new File(configFolder, "config.cfg"));
+		loadUI = config.get("general", "loadHelperUI", false).getBoolean();
 		reloadConfigs(false);
 		ApplyAdvancementIncrease.register();
 		ApplyPotionEffects.register();
@@ -81,7 +84,17 @@ public class PlayerWeight
 	@EventHandler
 	public void onPostLoad(FMLPostInitializationEvent evt)
 	{
-		reload();
+		if(loadUI)
+		{
+			ChangeRegistry.INSTANCE.init();
+			reload();
+			ChangeRegistry.INSTANCE.postInit();
+			new HelperUI().setVisible(true);
+		}
+		else
+		{
+			reload();
+		}
 	}
 	
 	@EventHandler

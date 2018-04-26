@@ -86,6 +86,11 @@ public enum WeightRegistry
 		return fluidWeight.getOrDefault(fluid.getFluid(), ((double)fluid.getFluid().getDensity(fluid) / 1000D) * ((double)fluid.amount / 1000D));
 	}
 	
+	public double getWeightForFluid(Fluid fluid)
+	{
+		return fluidWeight.getOrDefault(fluid, (double)fluid.getDensity() / 1000D);
+	}
+	
 	public double getWeight(ItemStack stack)
 	{
 		return stack.getMetadata() == Short.MAX_VALUE ? getWeightForItem(stack.getItem()) : stackWeights.getOrDefault(new ItemEntry(stack), getWeightForItem(stack.getItem()));
@@ -103,6 +108,11 @@ public enum WeightRegistry
 			return getWeightForItem(stack.getItem());
 		}
 		return stackWeights.getOrDefault(new ItemEntry(stack), defaultWeight);
+	}
+	
+	public double getDefaultWeight()
+	{
+		return defaultWeight;
 	}
 	
 	public void clear()

@@ -13,6 +13,7 @@ import playerWeight.api.ItemEntry;
 import playerWeight.api.WeightRegistry;
 import playerWeight.misc.IteratorWrapper;
 import playerWeight.misc.XMLNode;
+import playerWeight.ui.ChangeRegistry;
 
 public class WeightLoader
 {
@@ -102,7 +103,6 @@ public class WeightLoader
 					}
 					WeightRegistry.INSTANCE.registerStack(new ItemEntry(item, id), weight);
 				}
-				
 			}
 			else
 			{
@@ -111,7 +111,10 @@ public class WeightLoader
 		}
 		else if(type.equalsIgnoreCase("ore"))
 		{
-			WeightRegistry.INSTANCE.registerOre(node.get("ore"), node.getAsDouble("weight"));
+			String id = node.get("ore");
+			double weight = node.getAsDouble("weight");
+			WeightRegistry.INSTANCE.registerOre(id, weight);
+			ChangeRegistry.INSTANCE.addOreDictSize(id, weight);
 		}
 		else if(type.equalsIgnoreCase("fluid"))
 		{
