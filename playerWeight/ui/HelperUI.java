@@ -38,28 +38,6 @@ public class HelperUI extends JFrame
 	final List<ITypeEntry> currentList = new ArrayList<ITypeEntry>();
 	private JButton giveItem;
 	
-	/**
-	 * Launch the application.
-	 */
-	public static void main(String[] args)
-	{
-		EventQueue.invokeLater(new Runnable()
-		{
-			public void run()
-			{
-				try
-				{
-					HelperUI frame = new HelperUI();
-					frame.setVisible(true);
-				}
-				catch(Exception e)
-				{
-					e.printStackTrace();
-				}
-			}
-		});
-	}
-	
 	public HelperUI()
 	{
 		initUI();
