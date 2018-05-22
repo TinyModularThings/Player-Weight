@@ -57,19 +57,26 @@ public final class ChangeRegistry
 		
 		for(Item item : Item.REGISTRY)
 		{
-			ITypeEntry entry = new ItemType(item, WeightRegistry.INSTANCE.getWeightForItem(item), baseStacksize.get(item));
-			entries[0].add(entry);
-			miniCacheItem.put(item, entry);
-			NonNullList<ItemStack> items = NonNullList.create();
-			item.getSubItems(CreativeTabs.SEARCH, items);
-			for(ItemStack stack : items)
+			try
 			{
-				if(stack.getMetadata() != Short.MAX_VALUE)
+				ITypeEntry entry = new ItemType(item, WeightRegistry.INSTANCE.getWeightForItem(item), baseStacksize.get(item));
+				entries[0].add(entry);
+				miniCacheItem.put(item, entry);
+				NonNullList<ItemStack> items = NonNullList.create();
+				item.getSubItems(CreativeTabs.SEARCH, items);
+				for(ItemStack stack : items)
 				{
-					entry = new StackType(stack, WeightRegistry.INSTANCE.getWeightForStack(stack));
-					entries[1].add(entry);
-					miniCacheStack.put(new ItemEntry(stack), entry);
+					if(stack.getMetadata() != Short.MAX_VALUE)
+					{
+						entry = new StackType(stack, WeightRegistry.INSTANCE.getWeightForStack(stack));
+						entries[1].add(entry);
+						miniCacheStack.put(new ItemEntry(stack), entry);
+					}
 				}
+			}
+			catch(Exception e)
+			{
+				e.printStackTrace();
 			}
 		}
 		for(String id : OreDictionary.getOreNames())

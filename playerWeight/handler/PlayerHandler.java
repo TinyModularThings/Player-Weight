@@ -233,14 +233,14 @@ public final class PlayerHandler
 		{
 			if(effect.isPercent())
 			{
-				if(current >= effect.minWeight() && current <= effect.maxWeight())
+				if(current > effect.minWeight() && current <= effect.maxWeight())
 				{
 					list.add(effect);
 				}
 			}
 			else
 			{
-				if(totalWeight >= effect.minWeight() && totalWeight <= effect.maxWeight())
+				if(totalWeight > effect.minWeight() && totalWeight <= effect.maxWeight())
 				{
 					list.add(effect);
 				}

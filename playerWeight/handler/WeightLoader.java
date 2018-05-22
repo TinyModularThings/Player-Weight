@@ -111,7 +111,7 @@ public class WeightLoader
 		}
 		else if(type.equalsIgnoreCase("ore"))
 		{
-			String id = node.get("ore");
+			String id = node.get("name");
 			double weight = node.getAsDouble("weight");
 			WeightRegistry.INSTANCE.registerOre(id, weight);
 			ChangeRegistry.INSTANCE.addOreDictSize(id, weight);
