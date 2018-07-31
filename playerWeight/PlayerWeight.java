@@ -39,7 +39,7 @@ import playerWeight.misc.ShulkerBoxHandler;
 import playerWeight.ui.ChangeRegistry;
 import playerWeight.ui.HelperUI;
 
-@Mod(name = "Player Weight", modid = "playerweight", version = "1.0", acceptedMinecraftVersions = "[1.12]")
+@Mod(name = "Player Weight", modid = "playerweight", version = "1.4", acceptedMinecraftVersions = "[1.12]")
 public class PlayerWeight
 {
 	public static PlayerWeight INSTANCE;
@@ -156,6 +156,8 @@ public class PlayerWeight
 	
 	public void reload()
 	{
+		WeightRegistry.INSTANCE.clear();
+		PlayerHandler.INSTANCE.clearEffects();
 		errorMap.clear();
 		for(File file : weightFiles)
 		{
@@ -184,6 +186,7 @@ public class PlayerWeight
 				}
 			}
 		}
+		PlayerHandler.INSTANCE.onReload();
 	}
 	
 	public void printToChat(ICommandSender sender)

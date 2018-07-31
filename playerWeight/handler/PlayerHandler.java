@@ -18,14 +18,17 @@ import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.inventory.IInventory;
 import net.minecraft.inventory.InventoryBasic;
 import net.minecraft.item.ItemStack;
+import net.minecraft.server.MinecraftServer;
 import net.minecraftforge.event.entity.EntityEvent.EntityConstructing;
 import net.minecraftforge.event.entity.EntityMountEvent;
 import net.minecraftforge.event.entity.player.PlayerContainerEvent;
 import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fluids.FluidUtil;
+import net.minecraftforge.fml.common.FMLCommonHandler;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.gameevent.PlayerEvent.PlayerLoggedInEvent;
 import net.minecraftforge.fml.common.gameevent.PlayerEvent.PlayerLoggedOutEvent;
+import net.minecraftforge.fml.common.gameevent.PlayerEvent.PlayerRespawnEvent;
 import net.minecraftforge.fml.common.gameevent.TickEvent.Phase;
 import net.minecraftforge.fml.common.gameevent.TickEvent.PlayerTickEvent;
 import net.minecraftforge.items.CapabilityItemHandler;
@@ -109,6 +112,22 @@ public final class PlayerHandler
 	}
 	
 	@SubscribeEvent
+	public void onRespawn(PlayerRespawnEvent event)
+	{
+		event.player.inventoryContainer.addListener(new InventoryTracker(event.player.getUniqueID()));
+		dirtyPlayers.add(event.player.getUniqueID());
+		AbstractAttributeMap map = event.player.getAttributeMap();
+		double weight = map.getAttributeInstance(WeightRegistry.WEIGHT).getBaseValue();
+		IAttributeInstance inst = map.getAttributeInstance(WeightRegistry.MAX_WEIGHT);
+		inst.setBaseValue(PlayerWeight.MAX_WEIGHT);
+		double max_weight = inst.getAttributeValue();
+		for(IWeightEffect effect : passiveEffects)
+		{
+			effect.applyToPlayer(event.player, weight, max_weight, inst);
+		}
+	}
+	
+	@SubscribeEvent
 	public void onPlayerJoined(PlayerLoggedInEvent event)
 	{
 		event.player.inventoryContainer.addListener(new InventoryTracker(event.player.getUniqueID()));
@@ -143,6 +162,39 @@ public final class PlayerHandler
 		for(IWeightEffect effect : passiveEffects)
 		{
 			effect.onServerStop();
+		}
+	}
+	
+	public void clearEffects()
+	{
+		MinecraftServer server = FMLCommonHandler.instance().getMinecraftServerInstance();
+		if(server == null)
+		{
+			return;
+		}
+		for(EntityPlayer player : server.getPlayerList().getPlayers())
+		{
+			for(IWeightEffect effect : effects)
+			{
+				effect.onPlayerUnloaded(player);
+			}
+			for(IWeightEffect effect : passiveEffects)
+			{
+				effect.onPlayerUnloaded(player);
+			}
+		}
+	}
+	
+	public void onReload()
+	{
+		MinecraftServer server = FMLCommonHandler.instance().getMinecraftServerInstance();
+		if(server == null)
+		{
+			return;
+		}
+		for(EntityPlayer player : server.getPlayerList().getPlayers())
+		{
+			dirtyPlayers.add(player.getUniqueID());
 		}
 	}
 	
