@@ -1,7 +1,5 @@
 package playerWeight.handler;
 
-import java.util.List;
-
 import org.lwjgl.opengl.GL11;
 
 import net.minecraft.client.Minecraft;
@@ -17,11 +15,10 @@ import net.minecraftforge.client.event.RenderGameOverlayEvent;
 import net.minecraftforge.client.event.RenderGameOverlayEvent.ElementType;
 import net.minecraftforge.event.entity.EntityEvent.EntityConstructing;
 import net.minecraftforge.event.entity.player.ItemTooltipEvent;
-import net.minecraftforge.fluids.FluidStack;
-import net.minecraftforge.fluids.FluidUtil;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
+import playerWeight.PlayerWeight;
 import playerWeight.api.WeightRegistry;
 
 public final class ClientHandler
@@ -70,7 +67,7 @@ public final class ClientHandler
 		int b0 = scaledresolution.getScaledHeight() - 55;
 		GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
 		
-		fontrenderer.drawStringWithShadow(s, i, b0 - 2, 16777215);
+		fontrenderer.drawStringWithShadow(s, i + PlayerWeight.INSTANCE.xOffset, b0 - 2 +  + PlayerWeight.INSTANCE.yOffset, 16777215);
 		GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
 		GlStateManager.enableBlend();
 	}
@@ -80,21 +77,21 @@ public final class ClientHandler
 		if(weight >= 1000D)
 		{
 			weight /= 1000;
-			return ItemStack.DECIMALFORMAT.format(weight) + "T";
+			return ItemStack.DECIMALFORMAT.format(weight) + PlayerWeight.INSTANCE.weightNames[0];
 		}
 		else if(weight >= 1D)
 		{
-			return ItemStack.DECIMALFORMAT.format(weight) + "Kg";
+			return ItemStack.DECIMALFORMAT.format(weight) + PlayerWeight.INSTANCE.weightNames[1];
 		}
 		else if(weight >= 0.001)
 		{
 			weight *= 1000;
-			return ItemStack.DECIMALFORMAT.format(weight) + "g";
+			return ItemStack.DECIMALFORMAT.format(weight) + PlayerWeight.INSTANCE.weightNames[2];
 		}
 		else
 		{
 			weight *= 1000000;
-			return ItemStack.DECIMALFORMAT.format(weight) + "mg";
+			return ItemStack.DECIMALFORMAT.format(weight) + PlayerWeight.INSTANCE.weightNames[3];
 		}
 	}
 }
