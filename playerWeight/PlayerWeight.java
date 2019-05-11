@@ -1,6 +1,7 @@
 package playerWeight;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -9,6 +10,7 @@ import java.util.Map.Entry;
 import java.util.function.Function;
 
 import net.minecraft.command.ICommandSender;
+import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Blocks;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.text.TextComponentString;
@@ -18,12 +20,16 @@ import net.minecraftforge.fml.common.FMLCommonHandler;
 import net.minecraftforge.fml.common.FMLLog;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.Mod.EventHandler;
+import net.minecraftforge.fml.common.discovery.ASMDataTable.ASMData;
 import net.minecraftforge.fml.common.event.FMLPostInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLServerStartingEvent;
 import net.minecraftforge.fml.common.event.FMLServerStoppingEvent;
 import net.minecraftforge.items.IItemHandler;
+import net.minecraftforge.items.wrapper.InvWrapper;
 import playerWeight.api.WeightRegistry;
+import playerWeight.api.plugins.IWeightPlugin;
+import playerWeight.api.plugins.WeightPluginListener;
 import playerWeight.effects.ApplyAdvancementIncrease;
 import playerWeight.effects.ApplyAttributeEffect;
 import playerWeight.effects.ApplyDamageEffect;
@@ -50,11 +56,16 @@ public class PlayerWeight
 	Configuration config;
 	public File configFolder;
 	boolean loadUI;
+	boolean ender;
+	public int xOffset = 0;
+	public int yOffset = 0;
+	public String[] weightNames = new String[]{"T", "Kg", "g", "mg"};
 	
 	List<File> weightFiles = new LinkedList<File>();
 	List<File> effectFiles = new LinkedList<File>();
 	
 	Map<File, List<String>> errorMap = new LinkedHashMap<File, List<String>>();
+	List<IWeightPlugin> plugins = new ArrayList<IWeightPlugin>();
 	
 	@EventHandler
 	public void onPreLoad(FMLPreInitializationEvent evt)
@@ -65,6 +76,14 @@ public class PlayerWeight
 		configFolder = new File(evt.getModConfigurationDirectory(), "playerWeight");
 		config = new Configuration(new File(configFolder, "config.cfg"));
 		loadUI = config.get("general", "loadHelperUI", false).getBoolean();
+		ender = config.get("general", "Include EnderChest", false, "Includes the EnderChest into the WeightCalculation").getBoolean();
+		xOffset = config.get("general", "xOffset", 0, "Offsets the Weight Hud horizontally").getInt();
+		yOffset = config.get("general", "yOffset", 0, "Offsets the Weight Hud vertically").getInt();
+		String[] names = config.get("general", "weightCategories", new String[]{"T", "Kg", "g", "mg"}, "Defines the Weight Definetions, has to be exactly 4 entries").getStringList();
+		if(names != null && names.length == 4)
+		{
+			weightNames = names;
+		}
 		reloadConfigs(false);
 		ApplyAdvancementIncrease.register();
 		ApplyPotionEffects.register();
@@ -80,11 +99,54 @@ public class PlayerWeight
 				return new ShulkerBoxHandler(t);
 			}
 		}, Blocks.WHITE_SHULKER_BOX, Blocks.ORANGE_SHULKER_BOX, Blocks.MAGENTA_SHULKER_BOX, Blocks.LIGHT_BLUE_SHULKER_BOX, Blocks.YELLOW_SHULKER_BOX, Blocks.LIME_SHULKER_BOX, Blocks.PINK_SHULKER_BOX, Blocks.GRAY_SHULKER_BOX, Blocks.SILVER_SHULKER_BOX, Blocks.CYAN_SHULKER_BOX, Blocks.PURPLE_SHULKER_BOX, Blocks.BLUE_SHULKER_BOX, Blocks.BROWN_SHULKER_BOX, Blocks.GREEN_SHULKER_BOX, Blocks.RED_SHULKER_BOX, Blocks.BLACK_SHULKER_BOX);
+		if(ender)
+		{
+			WeightRegistry.INSTANCE.registerExtraPlayerInventory(new Function<EntityPlayer, IItemHandler>(){
+				@Override
+				public IItemHandler apply(EntityPlayer t)
+				{
+					return new InvWrapper(t.getInventoryEnderChest());
+				}
+			});
+		}
+		for(ASMData data : evt.getAsmData().getAll(WeightPluginListener.class.getCanonicalName()))
+		{
+			try
+			{
+				Class clz = Class.forName(data.getClassName());
+				if(clz != null)
+				{
+					WeightPluginListener plug = (WeightPluginListener)clz.getAnnotation(WeightPluginListener.class);
+					FMLLog.log.info("Test: "+plug);
+					FMLLog.log.info("Loading: ["+plug.name()+", Version="+plug.version()+"]");
+					IWeightPlugin modul = (IWeightPlugin)clz.newInstance();
+					if(modul != null && modul.canLoad())
+					{
+						plugins.add(modul);
+					}
+				}
+			}
+			catch(Exception e)
+			{
+				e.printStackTrace();
+			}
+		}
 	}
 	
 	@EventHandler
 	public void onPostLoad(FMLPostInitializationEvent evt)
 	{
+		for(IWeightPlugin plugin : plugins)
+		{
+			try
+			{
+				plugin.onLoad();
+			}
+			catch(Exception e)
+			{
+				e.printStackTrace();
+			}
+		}
 		if(loadUI && FMLCommonHandler.instance().getSide().isClient())
 		{
 			ChangeRegistry.INSTANCE.init();
